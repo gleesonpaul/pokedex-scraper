@@ -1,30 +1,44 @@
-import requests as rq
-from bs4 import BeautifulSoup as b
+import requests
+from bs4 import BeautifulSoup
 import pandas as pd
-import sqlite3 as db
+import sqlite3
 
-c = db.connect("db.db")
-r = rq.get("https://pokemondb.net/pokedex/all")
-s = b(r.content, 'html5lib')
-t = s.find('table', attrs={'id':'pokedex'})
+request = requests.get("https://pokemondb.net/pokedex/all")
+soup = BeautifulSoup(request.content, 'html5lib')
+table = soup.find('table', attrs={'id':'pokedex'})
 
-h = [i.text for i in t.findAll('div')]
+headers = [i.text for i in table.findAll('div')]
 
-dta = []
-cl = "td:nth-child"
-bu = "https://pokemondb.net"
+pokedex_list = []
+selector = "td:nth-child"
+baseURL = "https://pokemondb.net"
 
-# apply apply transformation to header list - to accommodate additional data within the table
-h[0] = 'Number'
-h.insert(1,"AVIF Icon Link")
-h.insert(2,"PNG Icon Link")
-h.insert(4,"Pokemon Page Link")
-h.insert(6,"Type Page Links")
+# apply transformation to header list - to accommodate additional data within the table
+headers[0] = 'Number'
+headers.insert(1,"AVIF Icon Link")
+headers.insert(2,"PNG Icon Link")
+headers.insert(4,"Pokemon Page Link")
+headers.insert(6,"Type Page Links")
 
-for rw in t.select('tbody > tr'):    
-    dta.append([rw.select(cl+'(1) > span')[0].text, rw.select(cl+'(1) > picture > source')[0]['srcset'], rw.select(cl+'(1) > picture > img')[0]['src'], rw.select(cl+'(2) > a')[0].text, bu + rw.select(cl+'(2) > a')[0]['href'], ", ".join([i.text for i in rw.select(cl+'(3) > a')]), ", ".join([bu + i["href"] for i in rw.select(cl+'(3) > a')]), rw.select(cl+'(4)')[0].text, rw.select(cl+'(5)')[0].text, rw.select(cl+'(6)')[0].text, rw.select(cl+'(7)')[0].text, rw.select(cl+'(8)')[0].text, rw.select(cl+'(9)')[0].text, rw.select(cl+'(10)')[0].text])
+for row in table.select('tbody > tr'):    
+    pokedex_list.append([
+        row.select(selector+'(1) > span')[0].text,                                  # Number(#)
+        row.select(selector+'(1) > picture > source')[0]['srcset'],                 # AVIF Icon Link
+        row.select(selector+'(1) > picture > img')[0]['src'],                       # PNG Icon Link
+        row.select(selector+'(2) > a')[0].text,                                     # Pokemon Name
+        baseURL + row.select(selector+'(2) > a')[0]['href'],                        # Pokemon Page LInk        
+        ", ".join([i.text for i in row.select(selector+'(3) > a')]),                # Type Name
+        ", ".join([baseURL + i["href"] for i in row.select(selector+'(3) > a')]),   # Type Page Link
+        row.select(selector+'(4)')[0].text,                                         # Total
+        row.select(selector+'(5)')[0].text,                                         # HP
+        row.select(selector+'(6)')[0].text,                                         # Attack
+        row.select(selector+'(7)')[0].text,                                         # Defense
+        row.select(selector+'(8)')[0].text,                                         # Sp. Attack
+        row.select(selector+'(9)')[0].text,                                         # Sp. Def
+        row.select(selector+'(10)')[0].text                                         # Speed
+    ])
 
-df = pd.DataFrame(dta, columns=h)
-df.to_sql(name="tbl", con=c, index=False, if_exists="replace")
-df2 = pd.read_sql('select * from tbl', c)
-c.close()
+pokedex_df = pd.DataFrame(pokedex_list, columns=headers)
+
+with sqlite3.connect("pokemondb.db") as conn:
+    pokedex_df.to_sql(name="pokedex", con=conn, index=False, if_exists="replace")
