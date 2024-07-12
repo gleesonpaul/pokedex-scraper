@@ -1,5 +1,6 @@
 # pokedex-scraper
 
+
 Challenge from JoshDev of DEP:
 >Up for #dataengineeringchallenge? 🤓
 .#Mechanics:
