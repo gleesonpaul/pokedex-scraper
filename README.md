@@ -15,4 +15,4 @@ Challenge from JoshDev of DEP:
 >![banner](https://img.pokemondb.net/design/avif/header-lg.avif)
 
 Result:
-![Result](/Screenshot 2024-07-12 142742.png)
+![Result](result.png)
